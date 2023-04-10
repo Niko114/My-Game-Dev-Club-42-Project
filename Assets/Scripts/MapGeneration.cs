@@ -3,10 +3,14 @@ using UnityEngine;
 
 public class MapGeneration : MonoBehaviour
 {
+	//Heap Stack
+	//multithreading
+	//Invoke Task .start
 	[Header ("Variables")]
 	public int			seed;
 	public Vector2		lowest_border = new(-6.5f, -4.5f);
 	public Vector2		highest_border = new(6.5f, 4.5f);
+	public bool			WallyWalls;
 	public float		size = 1;	//size of wall blocks
 	public float		pow_in_calc;
 	[Header ("Stuff")]
@@ -17,6 +21,8 @@ public class MapGeneration : MonoBehaviour
 
 	private List<GameObject>	walls = new();
 
+	//no wallywalls seed 640383621
+
 	void Start()
 	{
 		CreateWalls();
@@ -24,9 +30,6 @@ public class MapGeneration : MonoBehaviour
 
 	void CreateWalls()
 	{
-		//Vector2		lowest_border = new(-6.5f, -4.5f);
-		//Vector2		highest_border = new(6.5f, 4.5f);
-		//float		size = 1;
 		int[,]		Field;
 
 		//set size of field
@@ -57,6 +60,7 @@ public class MapGeneration : MonoBehaviour
 			print(printer);
 		}
 		//Instantiate walls
+		go_parent.transform.localEulerAngles = new(0,0,0);
 		for (int i = 0; i < Field.GetLength(0); i++)	//x
 		{
 			for (int j = 0; j < Field.GetLength(1); j++)	//y
@@ -75,6 +79,9 @@ public class MapGeneration : MonoBehaviour
 				}
 			}
 		}
+		go_parent.transform.localEulerAngles = new(90,0,0);
+
+		//Lib.l.EnSp.Spawning();
 	}
 
 	void PathAlgo(int[,] Field)
@@ -83,22 +90,28 @@ public class MapGeneration : MonoBehaviour
 		Vector2Int	curr;	//current spot(coordinate in the field(list)
 
 		//Set the first tile of path
-		curr = new(0, Field.GetLength(1) - 1); //-1 for wally walls-----
-		while (curr.y == Field.GetLength(1) - 1) //-1 for wally walls-----
-			//or while (curr.y >= Field.GetLength(1) - 1 || curr.y == 0)
+		if (WallyWalls)
 		{
-			//curr.y = Mathf.FloorToInt(Random.Range(0, Field.GetLength(1)));
-			curr.y = Mathf.FloorToInt(Random.Range(0 + 1, Field.GetLength(1) - 1)); //for wally walls-----
-			if (curr.y == Field.GetLength(1) - 1) //-1 for wally walls-----
-				print("It got the Random.value = 1 case, hooray");
+			curr = new(0, Field.GetLength(1) - 1);
+			while (curr.y == Field.GetLength(1) - 1)
+				curr.y = Mathf.FloorToInt(Random.Range(0 + 1, Field.GetLength(1) - 1));
+		}
+		else
+		{
+			curr = new(0, Field.GetLength(1));
+			while (curr.y == Field.GetLength(1))
+				curr.y = Mathf.FloorToInt(Random.Range(0, Field.GetLength(1)));
 		}
 		Field[curr.x, curr.y] = 1;
 
 		//Modify probability
 		calc_probs = new float[Field.GetLength(1)];	//calculated probabilities (i = distance from border in looking direction)
-		for (int i = 0; i < calc_probs.Length; i++)
-			//calc_probs[i] = Mathf.Pow(2f * i / calc_probs.Length, 2) * 2;
-			calc_probs[i] = Mathf.Pow(2f * (i - 1) / calc_probs.Length, pow_in_calc) * 2; //for wally walls-----
+		if (WallyWalls)
+			for (int i = 0; i < calc_probs.Length; i++)
+				calc_probs[i] = Mathf.Pow(2f * (i - 1) / calc_probs.Length, pow_in_calc) * 2;
+		else
+			for (int i = 0; i < calc_probs.Length; i++)
+				calc_probs[i] = Mathf.Pow(2f * i / calc_probs.Length, 2) * 2;
 
 		//Set all other path tiles
 		while (curr.x < Field.GetLength(0) - 1)
